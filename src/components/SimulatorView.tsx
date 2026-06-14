@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { generateSquad, pickLineup } from '../data/squads';
 import { getFormation } from '../data/formations';
-import { quickPredict, simulateMatch } from '../engine/matchSimulator';
+import { simulateMatch } from '../engine/matchSimulator';
 import type { Player, SimulatedMatch, Team } from '../types';
+import { getAiMatchCommentary, getAiWinProb } from '../api/ai';
+
 import { FormationPicker } from './FormationPicker';
 import { LineupPicker } from './LineupPicker';
 import { MatchResult } from './MatchResult';
@@ -77,7 +79,51 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
     [away, awaySquad, awayFormation, awayLineupIds],
   );
 
-  const probabilities = home && away ? quickPredict(home, away) : null;
+  const [probabilities, setProbabilities] = useState<{ homeWin: number; draw: number; awayWin: number } | null>(null);
+  const [aiCommentary, setAiCommentary] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      if (!home || !away) {
+        setProbabilities(null);
+        setAiCommentary(null);
+        return;
+      }
+
+      try {
+        const probs = await getAiWinProb({ home, away });
+        if (!cancelled) setProbabilities(probs);
+      } catch {
+        // keep UI usable; predictions can fall back later
+      }
+
+      try {
+        const commentary = await getAiMatchCommentary({
+          home,
+          away,
+          homeFormationId,
+          awayFormationId,
+          prediction: result
+            ? { winner: result.winner }
+            : undefined,
+        });
+        if (!cancelled) setAiCommentary(commentary.text);
+      } catch {
+        // keep UI usable
+      }
+    }
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [home, away, homeFormationId, awayFormationId, result]);
+
+
 
   const probabilityClass = (value: number) => {
     const rounded = Math.min(100, Math.max(0, Math.round(value / 5) * 5));
@@ -94,7 +140,10 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
         isKnockout: knockout,
       });
       setResult(match);
+      setAiCommentary(null);
       setSimulating(false);
+
+
     }, 600);
   }
 
@@ -226,8 +275,16 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
       {result && (
         <div className="card">
           <MatchResult match={result} />
+
+          {aiCommentary && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4 className="card-title">AI Match Analysis</h4>
+              <pre style={{ whiteSpace: 'pre-wrap', margin: 0, color: 'var(--text)' }}>{aiCommentary}</pre>
+            </div>
+          )}
         </div>
       )}
+
     </div>
   );
 }
