@@ -45,3 +45,44 @@ export async function getAiMatchCommentary(params: {
   });
 }
 
+export type AiInsightsResponse = { text: string };
+
+export async function getAiMatchInsights(params: {
+  home: Team;
+  away: Team;
+  homeFormationId: string;
+  awayFormationId: string;
+  prediction?: { winner?: string };
+  scoreHint?: string;
+}): Promise<AiInsightsResponse> {
+  return postJson<AiInsightsResponse>('/api/ai/insights_groq', {
+    matchContext: {
+      homeName: params.home.name,
+      awayName: params.away.name,
+      homeRating: params.home.rating,
+      awayRating: params.away.rating,
+      homeFormationId: params.homeFormationId,
+      awayFormationId: params.awayFormationId,
+    },
+    prediction: params.prediction,
+    scoreHint: params.scoreHint,
+  });
+}
+
+export async function getAiWinProbGroq(params: {
+  home: Team;
+  away: Team;
+  homeFormationId: string;
+  awayFormationId: string;
+}): Promise<WinProb> {
+  return postJson<WinProb>('/api/ai/predict_groq', {
+    homeName: params.home.name,
+    awayName: params.away.name,
+    homeRating: params.home.rating,
+    awayRating: params.away.rating,
+    homeFormationId: params.homeFormationId,
+    awayFormationId: params.awayFormationId,
+  });
+}
+
+

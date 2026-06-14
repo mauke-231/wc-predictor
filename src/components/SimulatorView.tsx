@@ -3,7 +3,8 @@ import { generateSquad, pickLineup } from '../data/squads';
 import { getFormation } from '../data/formations';
 import { simulateMatch } from '../engine/matchSimulator';
 import type { Player, SimulatedMatch, Team } from '../types';
-import { getAiMatchCommentary, getAiWinProb } from '../api/ai';
+import { getAiMatchCommentary, getAiWinProb, getAiMatchInsights } from '../api/ai';
+
 
 import { FormationPicker } from './FormationPicker';
 import { LineupPicker } from './LineupPicker';
@@ -81,6 +82,8 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
 
   const [probabilities, setProbabilities] = useState<{ homeWin: number; draw: number; awayWin: number } | null>(null);
   const [aiCommentary, setAiCommentary] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+
 
 
   useEffect(() => {
@@ -114,6 +117,21 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
       } catch {
         // keep UI usable
       }
+
+      try {
+        const insights = await getAiMatchInsights({
+          home,
+          away,
+          homeFormationId,
+          awayFormationId,
+          prediction: result ? { winner: result.winner } : undefined,
+          scoreHint: result ? `${result.score[0]}-${result.score[1]}` : undefined,
+        });
+        if (!cancelled) setAiInsights(insights.text);
+      } catch {
+        // keep UI usable
+      }
+
     }
 
     run();
@@ -282,6 +300,14 @@ export function SimulatorView({ teams }: SimulatorViewProps) {
               <pre style={{ whiteSpace: 'pre-wrap', margin: 0, color: 'var(--text)' }}>{aiCommentary}</pre>
             </div>
           )}
+
+          {aiInsights && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4 className="card-title">AI Match Insights</h4>
+              <pre style={{ whiteSpace: 'pre-wrap', margin: 0, color: 'var(--text)' }}>{aiInsights}</pre>
+            </div>
+          )}
+
         </div>
       )}
 

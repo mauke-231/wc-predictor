@@ -10,8 +10,9 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "groq-sdk": "^1.2.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -20,4 +21,3 @@
     "typescript": "~5.8.3"
   }
 }
-
